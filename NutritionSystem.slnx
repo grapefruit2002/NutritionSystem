@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/NutritionSystem.Api/NutritionSystem.Api.csproj" />
+    <Project Path="backend/NutritionSystem.Application/NutritionSystem.Application.csproj" />
+    <Project Path="backend/NutritionSystem.Domain/NutritionSystem.Domain.csproj" />
+    <Project Path="backend/NutritionSystem.Infrastructure/NutritionSystem.Infrastructure.csproj" />
+  </Folder>
+</Solution>

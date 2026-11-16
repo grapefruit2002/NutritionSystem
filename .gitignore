@@ -9,6 +9,10 @@ frontend/dist/
 frontend/offline/
 frontend/.vite/
 
+# Cloudflare Worker
+cloudflare/node_modules/
+cloudflare/.wrangler/
+
 # Local environment and SQLite files
 **/.env
 *.db

@@ -17,6 +17,7 @@
 - **前端**：Vue 2.7、Vue Router 3、Vue CLI 5、lucide-vue 图标。
 - **后端**：ASP.NET Core Web API、.NET 10、EF Core（SQLite）。
 - **数据库**：项目根目录的 `data.db`，后端启动时通过 EF Core 迁移自动建库与更新结构。
+- **部署**：Cloudflare Workers + D1（`cloudflare/`），本地仍可用 .NET 后端，两条链路共用同一套前端。
 
 ## 项目结构
 
@@ -108,7 +109,22 @@ cd frontend
 npm run build
 ```
 
-构建结果输出到 `frontend/dist`。部署静态站点时需将详情路由回退到 `index.html`。
+构建结果输出到 `frontend/dist`。部署静态站点时需将详情路由回退到 `index.html`（前端用 hash 路由，实际不依赖该回退）。
+
+## 部署到 Cloudflare
+
+`cloudflare/` 目录是一套可直接发布的 Cloudflare 版本：前端与 API 跑在同一个 Worker 上，数据存在 D1。Cloudflare Workers 无法运行 ASP.NET Core 进程，因此 API 按原契约等价迁移为 JavaScript，接口路径、字段与排序均与 .NET 版一致（17 个 GET 端点已逐字段对照通过）。
+
+```powershell
+cd cloudflare
+npm install
+npx wrangler login
+npm run deploy
+```
+
+命令会建库、建表、灌数据、构建前端并部署，详见 [cloudflare/README.md](cloudflare/README.md)。本地的 .NET 后端与 `data.db` 不受影响，两条链路可以共存。
+
+线上地址：<https://nutrition-system.nutrimap.workers.dev>。仓库已配置 GitHub Actions（`.github/workflows/deploy-cloudflare.yml`），配好 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID` 两个 secret 后，推送 `master` 即自动部署。
 
 ## 配置项
 

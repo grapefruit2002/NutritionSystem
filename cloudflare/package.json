@@ -1,0 +1,17 @@
+{
+  "name": "nutrition-system-cloudflare",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:frontend": "npm --prefix ../frontend run build",
+    "db:local": "wrangler d1 execute nutrition-system-db --local --file=db/schema.sql --yes && wrangler d1 execute nutrition-system-db --local --file=db/seed.sql --yes",
+    "dev": "wrangler dev",
+    "deploy": "node scripts/deploy.mjs",
+    "deploy:only": "wrangler deploy",
+    "rename": "node scripts/rename.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.20.0"
+  }
+}

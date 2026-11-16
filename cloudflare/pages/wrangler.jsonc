@@ -1,0 +1,15 @@
+{
+  // Pages 项目配置：Pages 只接受项目根目录下名为 wrangler.jsonc / wrangler.toml 的配置，
+  // 因此单独放在 pages/ 子目录，避免与 Worker 的 ../wrangler.jsonc 冲突。
+  // 与 Worker 版共用同一份 src（装配到 _worker.js）和同一个 D1 库。
+  "name": "nutrition-system",
+  "pages_build_output_dir": "../../frontend/dist",
+  "compatibility_date": "2025-11-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nutrition-system-db",
+      "database_id": "e6141141-3b46-432d-a5ec-89025571c328"
+    }
+  ]
+}

@@ -124,7 +124,7 @@ npm run deploy
 
 命令会建库、建表、灌数据、构建前端并部署，详见 [cloudflare/README.md](cloudflare/README.md)。本地的 .NET 后端与 `data.db` 不受影响，两条链路可以共存。
 
-线上地址：<https://nutrition-system.nutrimap.workers.dev>。仓库已配置 GitHub Actions（`.github/workflows/deploy-cloudflare.yml`），配好 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID` 两个 secret 后，推送 `master` 即自动部署。
+线上地址：<https://nutrition-system.nutrimap.workers.dev>（主域名，国内需代理）与 <https://nutrition-system.pages.dev>（同一份代码的 Pages 版本，国内可直连，共用同一个 D1 库）。仓库已配置 GitHub Actions（`.github/workflows/deploy-cloudflare.yml`），配好 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID` 两个 secret 后，推送 `master` 即自动部署两处。
 
 ## 配置项
 

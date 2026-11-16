@@ -70,6 +70,26 @@ npm run rename -- nutrition-map --dry-run              # 演练
 
 脚本会校验命名规则（小写字母/数字/短横线、≤63 字符、首尾非短横线）、改 `wrangler.jsonc`、执行部署并打印新地址；旧 Worker 不会自动删除，避免误删线上服务。
 
+### 两个访问入口
+
+同一份代码部署了两处，共用同一个 D1 库，数据完全一致：
+
+| 入口 | 地址 | 国内网络 |
+| --- | --- | --- |
+| workers.dev（官方主域名） | https://nutrition-system.nutrimap.workers.dev | 不可直连，需要代理 |
+| pages.dev（国内可用镜像） | https://nutrition-system.pages.dev | 可直连 |
+
+原因是 `*.workers.dev` 的 DNS 在国内被污染：用 8.8.8.8 / 223.5.5.5 / 1.1.1.1 查询都会返回 Facebook 段地址（`31.13.x.x`、`face:b00c`），TCP 连不上，手机浏览器显示“网页无法连接”。而实测 `pages.dev` 未被污染：直连能拿到 Cloudflare 真实 IPv6（`2606:4700::...`），`/health`、`/api/nutrients`、首页以及饮食记录的增删都正常返回。
+
+所以手机访问用 `https://nutrition-system.pages.dev` 即可，不需要 VPN。长期看仍建议接入自有域名作为唯一入口，再把 workers.dev 与 pages.dev 都关掉。
+
+Pages 版本的实现方式：`scripts/build-pages.mjs` 把 `src/index.js` 与 `src/data.js` 合并成 `frontend/dist/_worker.js`（Pages 的 advanced mode 入口），`pages/wrangler.jsonc` 声明同一个 D1 绑定。Pages 只接受项目根目录下名为 `wrangler.jsonc` 的配置，因此它单独放在 `pages/` 子目录，不会与 Worker 的配置冲突。部署命令：
+
+```
+npm run deploy:pages    # 构建前端 + 装配 _worker.js + 推送
+npm run build:pages     # 只装配，不部署
+```
+
 ### 线上地址与访问说明
 
 当前已发布：`https://nutrition-system.nutrimap.workers.dev`（D1 库 `nutrition-system-db`，账号 `86b6a024ae88dffb3c7315b3fcbef40e`）。

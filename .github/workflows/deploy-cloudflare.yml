@@ -69,6 +69,14 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
 
+      - name: 部署 Pages 版本（国内可直连入口）
+        if: env.CF_API_TOKEN != ''
+        working-directory: cloudflare
+        run: node scripts/deploy-pages.mjs --skip-frontend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ env.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
+
       - name: 同步参考数据到 D1
         if: github.event_name == 'workflow_dispatch' && inputs.sync_data && env.CF_API_TOKEN != ''
         working-directory: cloudflare
@@ -79,4 +87,6 @@ jobs:
 
       - name: 输出访问地址
         if: env.CF_API_TOKEN != ''
-        run: echo "::notice title=部署完成::https://nutrition-system.nutrimap.workers.dev"
+        run: |
+          echo "::notice title=部署完成::workers.dev：https://nutrition-system.nutrimap.workers.dev"
+          echo "::notice title=国内入口::pages.dev：https://nutrition-system.pages.dev"

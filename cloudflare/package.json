@@ -9,6 +9,8 @@
     "dev": "wrangler dev",
     "deploy": "node scripts/deploy.mjs",
     "deploy:only": "wrangler deploy",
+    "build:pages": "node scripts/build-pages.mjs",
+    "deploy:pages": "node scripts/deploy-pages.mjs",
     "rename": "node scripts/rename.mjs"
   },
   "devDependencies": {

@@ -168,7 +168,12 @@ if port_in_use "${PORT}"; then
     echo "  8080 也被占用，请手动改 .env 里的 HTTP_PORT 后重跑。" >&2
     exit 1
   fi
-  sed -i "s/^HTTP_PORT=.*/HTTP_PORT=${PORT}/" .env
+  if grep -qE '^HTTP_PORT=' .env; then
+    sed -i "s/^HTTP_PORT=.*/HTTP_PORT=${PORT}/" .env
+  else
+    echo "HTTP_PORT=${PORT}" >> .env
+  fi
+  echo "  已写入 .env：HTTP_PORT=${PORT}"
 fi
 
 docker compose up -d --build

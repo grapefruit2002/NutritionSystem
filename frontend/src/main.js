@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import './style.css'
+import './today-nutrition.css'
 import App from './App.vue'
 
 Vue.use(VueRouter)

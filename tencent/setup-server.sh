@@ -35,14 +35,44 @@ else
   echo "内存 ${MEM_GB} GB、swap ${SWAP_KB} KB，无需补充。"
 fi
 
-echo "==> 添加 Docker 官方源"
+echo "==> 配置 Docker apt 源（国内镜像优先，自动回退）"
 install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-  -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
-https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME:-noble} stable" \
-  > /etc/apt/sources.list.d/docker.list
+rm -f /etc/apt/sources.list.d/docker.list
+
+CODENAME="${UBUNTU_CODENAME:-noble}"
+# 依次尝试：阿里云 -> 清华 -> 中科大 -> Docker 官方（需代理）
+DOCKER_SOURCES=(
+  "阿里云|https://mirrors.aliyun.com/docker-ce/linux/ubuntu"
+  "清华|https://mirrors.tuna.tsinghua.edu.cn/docker-ce/linux/ubuntu"
+  "中科大|https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu"
+  "Docker官方|https://download.docker.com/linux/ubuntu"
+)
+
+DOCKER_OK=0
+for entry in "${DOCKER_SOURCES[@]}"; do
+  src_name="${entry%%|*}"
+  src_url="${entry##*|}"
+  echo "  尝试 ${src_name}：${src_url}"
+  if curl -fsSL --max-time 20 "${src_url}/gpg" -o /etc/apt/keyrings/docker.asc 2>/dev/null; then
+    chmod a+r /etc/apt/keyrings/docker.asc
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] ${src_url} ${CODENAME} stable" \
+      > /etc/apt/sources.list.d/docker.list
+    # 仅刷新该源，避免全量更新拖慢
+    if apt-get update -y \
+        -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/docker.list \
+        -o Dir::Etc::sourceparts=- >/dev/null 2>&1; then
+      DOCKER_OK=1
+      echo "  使用 ${src_name} 源成功"
+      break
+    fi
+  fi
+  echo "  ${src_name} 不可用，继续下一个"
+done
+
+if [ "${DOCKER_OK}" -ne 1 ]; then
+  echo "所有 Docker apt 源均不可用，请检查服务器网络后重试。" >&2
+  exit 1
+fi
 
 echo "==> 安装 Docker 引擎与 compose 插件"
 apt-get update -y

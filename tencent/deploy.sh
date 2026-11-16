@@ -7,27 +7,41 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${SCRIPT_DIR}"
 
-if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
-  echo "未检测到 Docker / compose 插件，请先以 root 执行 setup-server.sh。" >&2
+if ! command -v docker >/dev/null 2>&1; then
+  echo "未检测到 Docker，请先以 root 执行 setup-server.sh。" >&2
+  exit 1
+fi
+
+# 权限自适应：当前用户能访问 docker.sock 就直接用，否则自动加 sudo。
+# 这样无论是否已加入 docker 组，脚本都能跑通。
+if docker info >/dev/null 2>&1; then
+  DOCKER=(docker)
+elif sudo -n docker info >/dev/null 2>&1; then
+  DOCKER=(sudo docker)
+  echo "提示：当前用户无 Docker 权限，本次自动使用 sudo 执行。"
+  echo "      如需以后免 sudo：sudo usermod -aG docker \$USER，然后重新登录。"
+else
+  echo "当前用户无权访问 Docker，且无法免密 sudo。" >&2
+  echo "请改用：sudo bash deploy.sh" >&2
   exit 1
 fi
 
 ENV_FILE="${SCRIPT_DIR}/.env"
 if [ ! -f "${ENV_FILE}" ]; then
   cp "${SCRIPT_DIR}/.env.example" "${ENV_FILE}"
-  echo "已生成 .env（首次部署）。请把 SITE_ORIGIN 改成你的实际域名后重跑本脚本。"
+  echo "已生成 .env（首次部署）。如需域名，请修改 SITE_ORIGIN 后重跑本脚本。"
 fi
 
 echo "==> 构建并启动容器"
-docker compose up -d --build
+"${DOCKER[@]}" compose up -d --build
 
-echo "==> 等待服务就绪（最多 120 秒）"
-for i in $(seq 1 40); do
+echo "==> 等待服务就绪（最多 150 秒）"
+for i in $(seq 1 50); do
   if curl -fsS http://127.0.0.1/health >/dev/null 2>&1; then
     echo
     echo "健康检查通过：http://127.0.0.1/health"
     echo
-    docker compose ps
+    "${DOCKER[@]}" compose ps
     echo
     echo "部署完成。浏览器打开 http://你的服务器IP 或域名 即可访问。"
     exit 0
@@ -38,5 +52,5 @@ done
 
 echo
 echo "健康检查超时，最近日志如下：" >&2
-docker compose logs --tail=80 >&2
+"${DOCKER[@]}" compose logs --tail=80 >&2
 exit 1

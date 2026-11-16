@@ -84,6 +84,16 @@ systemctl enable --now docker
 docker --version
 docker compose version
 
+echo "==> 将当前 sudo 用户加入 docker 组（免 sudo 运行 docker）"
+TARGET_USER="${SUDO_USER:-}"
+if [ -n "${TARGET_USER}" ] && [ "${TARGET_USER}" != "root" ]; then
+  groupadd -f docker
+  usermod -aG docker "${TARGET_USER}"
+  echo "已将 ${TARGET_USER} 加入 docker 组；该用户需重新登录后生效（或先执行 newgrp docker）。"
+else
+  echo "未检测到非 root 的 sudo 用户，跳过。"
+fi
+
 echo "==> 配置 Docker Hub 内网镜像加速（腾讯云轻量/CVM 均适用）"
 mkdir -p /etc/docker
 if [ -s /etc/docker/daemon.json ]; then
@@ -115,7 +125,7 @@ ufw allow OpenSSH
 ufw allow 80/tcp
 ufw allow 443/tcp
 ufw --force enable
-ufw status --verbose | head -20
+ufw status verbose | head -20
 
 echo
 echo "服务器系统初始化完成。"

@@ -15,6 +15,9 @@ if [ "${ID:-}" != "ubuntu" ]; then
   exit 1
 fi
 
+echo "==> 清理可能残留的 Docker 源（避免旧源拖垮 apt-get update）"
+rm -f /etc/apt/sources.list.d/docker.list
+
 echo "==> 更新软件源并安装依赖"
 apt-get update -y
 apt-get install -y ca-certificates curl wget git ufw python3
@@ -37,7 +40,6 @@ fi
 
 echo "==> 配置 Docker apt 源（国内镜像优先，自动回退）"
 install -m 0755 -d /etc/apt/keyrings
-rm -f /etc/apt/sources.list.d/docker.list
 
 CODENAME="${UBUNTU_CODENAME:-noble}"
 # 依次尝试：阿里云 -> 清华 -> 中科大 -> Docker 官方（需代理）

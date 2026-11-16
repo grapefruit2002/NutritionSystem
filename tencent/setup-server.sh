@@ -19,6 +19,22 @@ echo "==> 更新软件源并安装依赖"
 apt-get update -y
 apt-get install -y ca-certificates curl wget git ufw
 
+echo "==> 检查内存，低于 4 GB 时补充 2 GB swap（编译 .NET/前端时防 OOM）"
+MEM_GB=$(awk '/MemTotal/ {printf "%d", $2/1024/1024}' /proc/meminfo)
+SWAP_KB=$(awk '/SwapTotal/ {print $2}' /proc/meminfo)
+if [ "${MEM_GB:-0}" -lt 4 ] && [ "${SWAP_KB:-0}" -lt 1048576 ]; then
+  if [ ! -f /swapfile ]; then
+    fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+    chmod 600 /swapfile
+    mkswap /swapfile >/dev/null
+  fi
+  swapon /swapfile 2>/dev/null || true
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  echo "已启用 2 GB swap。"
+else
+  echo "内存 ${MEM_GB} GB、swap ${SWAP_KB} KB，无需补充。"
+fi
+
 echo "==> 添加 Docker 官方源"
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg \

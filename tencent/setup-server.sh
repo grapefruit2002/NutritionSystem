@@ -17,7 +17,7 @@ fi
 
 echo "==> 更新软件源并安装依赖"
 apt-get update -y
-apt-get install -y ca-certificates curl wget git ufw
+apt-get install -y ca-certificates curl wget git ufw python3
 
 echo "==> 检查内存，低于 4 GB 时补充 2 GB swap（编译 .NET/前端时防 OOM）"
 MEM_GB=$(awk '/MemTotal/ {printf "%d", $2/1024/1024}' /proc/meminfo)
@@ -51,6 +51,32 @@ systemctl enable --now docker
 
 docker --version
 docker compose version
+
+echo "==> 配置 Docker Hub 内网镜像加速（腾讯云轻量/CVM 均适用）"
+mkdir -p /etc/docker
+if [ -s /etc/docker/daemon.json ]; then
+  python3 - <<'PY'
+import json
+p = '/etc/docker/daemon.json'
+cfg = json.load(open(p, encoding='utf-8'))
+mirrors = cfg.setdefault('registry-mirrors', [])
+url = 'https://mirror.ccs.tencentyun.com'
+if url not in mirrors:
+    mirrors.insert(0, url)
+json.dump(cfg, open(p, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+print('已合并镜像加速到现有 daemon.json')
+PY
+else
+  cat > /etc/docker/daemon.json <<'EOF'
+{
+  "registry-mirrors": ["https://mirror.ccs.tencentyun.com"]
+}
+EOF
+  echo "已创建 daemon.json 并配置镜像加速"
+fi
+python3 -m json.tool /etc/docker/daemon.json >/dev/null
+systemctl daemon-reload
+systemctl restart docker
 
 echo "==> 配置系统防火墙：放行 SSH / HTTP / HTTPS"
 ufw allow OpenSSH

@@ -37,45 +37,40 @@ nginx 容器 (web)  ── 静态前端 dist
 
 > 轻量应用服务器注意：除系统内 ufw 外，还必须在腾讯云控制台本实例的『防火墙』标签放行 TCP 80（HTTPS 再放行 443），来源 `0.0.0.0/0`。两层是独立的，控制台未放行时浏览器依然连不上。`setup-server.sh` 已在结尾给出提示。
 
-> 2 GB 内存提示：首次 `docker compose up -d --build` 会同时编译 .NET 和前端，内存吃紧时可先执行 `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile` 临时加交换空间。
+> 2 GB 内存提示：`setup-server.sh` 会在内存低于 4 GB 且无 swap 时自动建立 2 GB 交换空间，无需手动处理。
 
 ## 部署步骤
 
-### 1. 初始化服务器
+### 1. 拉取代码并初始化服务器
 
-用 root SSH 登录后执行：
+用一个普通用户（例如 `ubuntu`）把代码拉下来：
 
 ```bash
-wget -qO setup-server.sh <脚本的原始地址>/setup-server.sh
-bash setup-server.sh
+cd ~ && git clone https://github.com/grapefruit2002/NutritionSystem.git
+cd ~/NutritionSystem
 ```
 
-脚本会安装 Docker 引擎与 compose 插件、配置防火墙放行 22/80/443。若你是通过 `git clone` 拿到代码，可直接用仓库里的脚本：
+再用 root 权限跑初始化脚本：
 
 ```bash
 sudo bash tencent/setup-server.sh
 ```
 
-### 2. 拉取代码
+脚本会：安装 Docker 引擎与 compose 插件、配置 Docker Hub 腾讯云内网镜像加速、在内存不足时加 swap、放行系统防火墙 22/80/443。
 
-用一个普通用户（例如 `ubuntu`）操作：
+> 镜像来源：.NET 基础镜像默认走微软官方中国区端点 `mcr.azure.cn`（已验证 `.NET 10` 的 sdk/aspnet tag 可用）；Docker Hub 的 node/nginx 镜像走腾讯云内网加速 `mirror.ccs.tencentyun.com`（仅内网生效）。若服务器上 `mcr.azure.cn` 拉取失败，在 `.env` 里把 `DOTNET_REGISTRY` 改成 `mcr.microsoft.com`（全球站，需代理）后重跑 `deploy.sh`。
+
+### 2. 配置域名
 
 ```bash
-sudo -u ubuntu -i
-git clone <你的仓库地址> ~/NutritionSystem
 cd ~/NutritionSystem/tencent
-```
-
-### 3. 配置域名
-
-```bash
 cp .env.example .env
 nano .env
 ```
 
-把 `SITE_ORIGIN` 改成你的真实域名（含 `https://`）。`VUE_APP_API_BASE_URL` 保持留空，`HTTP_PORT` 保持 80。
+把 `SITE_ORIGIN` 改成你的真实域名（含 `https://`）；仅用 IP 访问时保持默认即可。`VUE_APP_API_BASE_URL` 保持留空，`HTTP_PORT` 保持 80，`DOTNET_REGISTRY` 保持 `mcr.azure.cn`。
 
-### 4. 一键部署
+### 3. 一键部署
 
 ```bash
 bash deploy.sh
@@ -83,7 +78,7 @@ bash deploy.sh
 
 脚本会构建两个镜像、启动容器、轮询 `/health`，通过后打印容器状态。首次构建需要下载 .NET SDK、Node 基础镜像和 npm 依赖，视网络需要几分钟。
 
-### 5. 验证
+### 4. 验证
 
 ```bash
 curl -i http://127.0.0.1/health

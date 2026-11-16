@@ -1,0 +1,6 @@
+# Shell 脚本必须在 Linux 上以 LF 换行执行，否则报 bad interpreter
+*.sh text eol=lf
+# Dockerfile / 配置同样按 LF 处理，避免构建上下文里的隐藏 CR
+Dockerfile* text eol=lf
+*.conf text eol=lf
+*.yml text eol=lf

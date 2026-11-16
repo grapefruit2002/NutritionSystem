@@ -146,22 +146,51 @@ if [ ! -f .env ]; then
   cp .env.example .env
   echo "  已生成 .env（默认用 IP 访问即可）"
 fi
+
+# 端口预检：80 被占用是常见失败点
+PORT=$(grep -E '^HTTP_PORT=' .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d ' \r')
+PORT="${PORT:-80}"
+
+port_in_use() { ss -tlnH "sport = :$1" 2>/dev/null | grep -q .; }
+
+if port_in_use "${PORT}"; then
+  echo "  端口 ${PORT} 已被占用，先清理本项目残留容器…"
+  docker rm -f nutrition-web nutrition-api >/dev/null 2>&1 || true
+  sleep 2
+fi
+
+if port_in_use "${PORT}"; then
+  echo "  端口 ${PORT} 仍被其他进程占用，占用者："
+  ss -tlnp "sport = :${PORT}" 2>/dev/null | tail -n +2 | sed 's/^/    /'
+  echo "  自动切换到 8080 端口继续部署。"
+  PORT=8080
+  if port_in_use "${PORT}"; then
+    echo "  8080 也被占用，请手动改 .env 里的 HTTP_PORT 后重跑。" >&2
+    exit 1
+  fi
+  sed -i "s/^HTTP_PORT=.*/HTTP_PORT=${PORT}/" .env
+fi
+
 docker compose up -d --build
 
 # ---------- 6. 健康检查 ----------
 echo
-echo "[6/6] 等待服务就绪"
+echo "[6/6] 等待服务就绪（端口 ${PORT}）"
 for i in $(seq 1 50); do
-  if curl -fsS http://127.0.0.1/health >/dev/null 2>&1; then
+  if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; then
     echo
     echo "==============================================="
     echo " 部署成功"
     echo "==============================================="
     docker compose ps
     echo
-    echo "访问：http://$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || echo '服务器公网IP')"
+    echo "访问：http://$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || echo '服务器公网IP'):${PORT}"
     echo
-    echo "★ 若浏览器打不开，请在腾讯云控制台本实例的『防火墙』标签放行 TCP 80。"
+    if [ "${PORT}" != "80" ]; then
+      echo "★ 端口不是 80：请在腾讯云控制台『防火墙』放行 TCP ${PORT}。"
+    else
+      echo "★ 若浏览器打不开，请在腾讯云控制台本实例的『防火墙』标签放行 TCP 80。"
+    fi
     exit 0
   fi
   printf '.'
